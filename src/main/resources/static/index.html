@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style type="text/css">
+        .task {
+            padding: 30px;
+            border: 1px solid #ccc;
+            margin: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+<div style="width: 100%; max-width: 1000px; margin: 100px auto">
+
+    <h2>Dodaj zadanie</h2>
+
+    <input type="text" placeholder="Id zadania - jeśli podasz to zaktualizujemy" id="taskId"/> <br>
+    <input type="text" placeholder="Nazwa zadania" id="newTaskName"/> <br>
+    <select id="categoryId">
+        <option value="1">Domowe</option>
+        <option value="2">Samochod</option>
+    </select>
+    <button onclick="sendTaskToBackend()">Dodaj!</button>
+    <button onclick="updateTaskOnBackend()">Aktualizuj!</button>
+
+    <h2>Lista zadań</h2>
+
+    <button onclick="fetchAllAction.call()">Odśwież</button>
+
+    <button onclick="addTestTask()">Dodaj testowe zadanie</button>
+
+    <div id="tasks">
+    </div>
+
+
+</div>
+
+<script type="text/javascript">
+
+    let allTasks;
+
+    const fetchAllAction = async () => {
+        const response = await fetch('http://localhost:8080/api/tasks');
+        const allTasksData = await response.json(); //extract JSON from the http response
+
+        let container = document.getElementById('tasks');
+        container.innerHTML = '';
+
+        allTasks = allTasksData;
+
+        for (let i = 0; i < allTasksData.length; i++) {
+            addTask(allTasksData[i]);
+        }
+    }
+
+    fetchAllAction.call();
+
+    function addTestTask() {
+        addTask({name: 'Testowe zadanie'});
+    }
+
+    function addTask(task) {
+        let element = document.createElement('div');
+        element.innerHTML = '<div class="task">' +
+            '<div>' + task.id + '. ' + task.name + ' | Kategoria: ' + task.categoryName + '</div>' +
+            '<div><button onclick="deleteTask(' + task.id + ')">USUN</button></div>' +
+            '</div>';
+        let container = document.getElementById('tasks');
+        container.appendChild(element);
+    }
+
+    function deleteTask(id) {
+        const deleteAction = async () => {
+            const response = await fetch('http://localhost:8080/api/tasks/' + id, {
+                method: 'DELETE'
+            });
+            fetchAllAction.call();
+        }
+        deleteAction.call();
+    }
+
+    function sendTaskToBackend() {
+        let newTaskName = document.getElementById('newTaskName');
+
+        const sendTaskAction = async () => {
+
+            let taskToAdd = {
+                name: newTaskName.value,
+                categoryId: categoryId.value
+            };
+
+            const response = await fetch('http://localhost:8080/api/tasks/', {
+                method: 'POST',
+                body: JSON.stringify(taskToAdd),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            fetchAllAction.call();
+        }
+        sendTaskAction.call();
+    }
+
+    function updateTaskOnBackend() {
+        let taskId = document.getElementById('taskId').value;
+        let newTaskName = document.getElementById('newTaskName').value;
+
+        let date = new Date();
+
+        for (let i = 0; i < allTasks.length; i++) {
+            console.log('checking', allTasks[i]);
+            if (allTasks[i].id == taskId) {
+                date = allTasks[i].createdAt;
+                console.log('found!');
+            }
+        }
+
+        const sendTaskAction = async () => {
+            let taskToAdd = {
+                name: newTaskName,
+                createdAt: date
+            };
+
+            const response = await fetch('http://localhost:8080/api/tasks/' + taskId, {
+                method: 'PUT',
+                body: JSON.stringify(taskToAdd),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            fetchAllAction.call();
+        }
+        sendTaskAction.call();
+    }
+
+</script>
+
+
+</body>
+</html>
